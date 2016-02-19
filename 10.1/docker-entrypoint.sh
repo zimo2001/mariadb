@@ -30,6 +30,7 @@ if [ "$1" = 'mysqld' ]; then
 DELETE FROM mysql.user ;
 CREATE USER 'root'@'%' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}' ;
 GRANT ALL ON *.* TO 'root'@'%' WITH GRANT OPTION ;
+GRANT PROCESS ON *.* TO 'clustercheckuser'@'localhost' IDENTIFIED BY 'clustercheckpassword!';
 DROP DATABASE IF EXISTS test ;
 EOSQL
         

@@ -4,8 +4,8 @@ FROM debian:jessie
 # add our user and group first to make sure their IDs get assigned consistently, regardless of whatever dependencies get added
 RUN groupadd -r mysql && useradd -r -g mysql mysql
 
-# net-tools for ifconfig, vim
-RUN apt-get update && apt-get install -y net-tools vim && rm -rf /var/lib/apt/lists/*
+# net-tools for ifconfig, vim, xinetd for clustercheck
+RUN apt-get update && apt-get install -y net-tools vim xinetd && rm -rf /var/lib/apt/lists/*
 
 RUN apt-key adv --keyserver ha.pool.sks-keyservers.net --recv-keys 199369E5404BD5FC7D2FE43BCBCB082A1BB943DB
 
@@ -31,8 +31,8 @@ RUN dpkg -i /tmp/percona-release_0.1-3.jessie_all.deb \
 # the "/var/lib/mysql" stuff here is because the mysql-server postinst doesn't have an explicit way to disable the mysql_install_db codepath besides having a database already "configured" (ie, stuff in /var/lib/mysql/mysql)
 # also, we set debconf keys to make APT a little quieter
 RUN { \
-		echo mariadb-server-$MARIADB_MAJOR mysql-server/root_password password ''; \
-		echo mariadb-server-$MARIADB_MAJOR mysql-server/root_password_again password ''; \
+		echo mariadb-server-$MARIADB_MAJOR mysql-server/root_password password 'irrelevant'; \
+		echo mariadb-server-$MARIADB_MAJOR mysql-server/root_password_again password 'irrelevant'; \
 	} | debconf-set-selections \
 	&& apt-get update \
 	&& apt-get install -y \
@@ -60,6 +60,16 @@ RUN chmod +x /etcdctl
 COPY my.cnf /etc/mysql/my.cnf
 COPY cluster.cnf /tmp/cluster.cnf
 
+
+# copy clustercheck and restart xinetd
+COPY clustercheck /usr/bin/clustercheck
+RUN chmod +x /usr/bin/clustercheck
+COPY mysqlchk /etc/xinetd.d/mysqlchk
+RUN chmod +x /etc/xinetd.d/mysqlchk
+RUN echo "mysqlchk    9200/tcp    # MySQL check" >> /etc/services
+RUN /etc/init.d/xinetd restart
+
+
 # need random.sh because otherwise, ENV $RANDOM is not set - this is randomized server-id...
 COPY random.sh /tmp/random.sh
 RUN /tmp/random.sh
@@ -69,5 +79,5 @@ COPY docker-entrypoint.sh /
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 
-EXPOSE 3306 4444 4567 4568
+EXPOSE 3306 4444 4567 4568 9200
 CMD ["mysqld"]
