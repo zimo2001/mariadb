@@ -64,7 +64,7 @@ EOSQL
         sed -i -e "s|wsrep_sst_auth \= \"sstuser:changethis\"|wsrep_sst_auth = ${WSREP_SST_USER}:${WSREP_SST_PASSWORD}|" /etc/mysql/conf.d/cluster.cnf
 
 	if [ -n "$CLUSTER_NAME" ]; then
-           sed -i -e "s|^#wsrep_cluster_name \= .*$|wsrep_cluster_name = ${CLUSTER_NAME}|" /etc/mysql/conf.d/cluster.cnf
+           sed -i -e "s|^wsrep_cluster_name \= .*$|wsrep_cluster_name = ${CLUSTER_NAME}|" /etc/mysql/conf.d/cluster.cnf
         fi
 
         WSREP_NODE_ADDRESS=`ip addr show | grep -E '^[ ]*inet' | grep -m1 global | awk '{ print $2 }' | sed -e 's/\/.*//'`
@@ -78,6 +78,14 @@ EOSQL
         # CoreOS, using fleet
         if [ -n "$FLEETCTL_ENDPOINT" -a -e './etcdctl' -a -z "$WSREP_CLUSTER_ADDRESS" ]; then
             WSREP_CLUSTER_ADDRESS=""
+
+	    # wait for all the expected nodes to be registered in etcd	    
+	    if [ -n $NODES_EXPECTED ]; then
+               while [ "$NODES_EXPECTED" -ne "$(./etcdctl --peers=${FLEETCTL_ENDPOINT} ls /galera | wc -l)" ]; do
+                  sleep 45
+               done
+            fi
+
             for key in $(./etcdctl --peers=${FLEETCTL_ENDPOINT} ls /galera/|| true); do
                 WSREP_NODE=$(./etcdctl --peers=${FLEETCTL_ENDPOINT} get ${key} || true)
                 if [ "$WSREP_CLUSTER_ADDRESS" != '' ]; then
@@ -86,6 +94,7 @@ EOSQL
                     WSREP_CLUSTER_ADDRESS=${WSREP_NODE}
                 fi
             done
+
             WSREP_CLUSTER_ADDRESS=gcomm://${WSREP_CLUSTER_ADDRESS}
         fi
 
