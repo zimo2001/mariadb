@@ -88,7 +88,7 @@ EOSQL
 
 
 
-            if [ -n "$BOOTSTRAP_NODE" -a $(hostname) -eq "$BOOTSTRAP_NODE" ]; then
+            if [ -n "$BOOTSTRAP_NODE" -a "$(hostname)" == "$BOOTSTRAP_NODE" ]; then
                WSREP_CLUSTER_ADDRESS='gcomm://'
             else
                # wait for all the expected nodes to be registered in etcd	    
