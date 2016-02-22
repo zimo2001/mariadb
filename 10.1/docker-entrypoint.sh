@@ -67,6 +67,12 @@ EOSQL
            sed -i -e "s|^wsrep_cluster_name \= .*$|wsrep_cluster_name = ${CLUSTER_NAME}|" /etc/mysql/conf.d/cluster.cnf
         fi
 
+	if [ -n "$NODE_NAME" ]; then
+           sed -i -e "s|^#wsrep_node_name \= .*$|wsrep_node_name = ${NODE_NAME}|" /etc/mysql/conf.d/cluster.cnf
+        else
+	   sed -i -e "s|^#wsrep_node_name \= .*$|wsrep_node_name = $(hostname)|" /etc/mysql/conf.d/cluster.cnf
+        fi
+	
         WSREP_NODE_ADDRESS=`ip addr show | grep -E '^[ ]*inet' | grep -m1 global | awk '{ print $2 }' | sed -e 's/\/.*//'`
         if [ -n "$WSREP_NODE_ADDRESS" ]; then
             sed -i -e "s|^#wsrep_node_address \= .*$|wsrep_node_address = ${WSREP_NODE_ADDRESS}|" /etc/mysql/conf.d/cluster.cnf
