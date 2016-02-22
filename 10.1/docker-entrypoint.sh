@@ -91,7 +91,7 @@ EOSQL
             else
                # wait for all the expected nodes to be registered in etcd	    
                if [ -n $MIN_NODES ]; then
-                  while [ $MIN_NODES -le $(./etcdctl --peers=${FLEETCTL_ENDPOINT} ls /galera | wc -l) ]; do
+                  while [ $MIN_NODES -gt $(./etcdctl --peers=${FLEETCTL_ENDPOINT} ls /galera | wc -l) ]; do
                      sleep 45
                   done
                fi
