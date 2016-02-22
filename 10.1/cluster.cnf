@@ -1,12 +1,30 @@
 [mysqld]
 
-wsrep_provider = /usr/lib/libgalera_smm.so
+# Galera Settings
+
+wsrep_cluster_name = galera
+
+wsrep_provider = /usr/lib/galera/libgalera_smm.so
 wsrep_cluster_address = gcomm://
+wsrep_provider_options="gcache.size=1G"
+
+
+# binlog settings - MUST be row format for Galera
+
+log-bin = /var/lib/mysql/mysql-bin
 binlog_format = ROW
+sync_binlog = 1
+expire_logs_days = 10
+max_binlog_size = 1G
+
+
 default_storage_engine = InnoDB
 innodb_autoinc_lock_mode = 2
 #wsrep_node_address = 127.0.0.1 
 
+
+
+# Galera SST user
+
 wsrep_sst_method = xtrabackup-v2
-wsrep_cluster_name = galera
 wsrep_sst_auth = "sstuser:changethis"
