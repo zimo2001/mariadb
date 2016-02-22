@@ -51,6 +51,8 @@ EOSQL
 
 
     if [ -n "$GALERA_CLUSTER" -a "$GALERA_CLUSTER" = true ]; then
+        cp /tmp/cluster.cnf /etc/mysql/conf.d/cluster.cnf
+
 	sed -i -e "s|^#wsrep_on.*$|wsrep_on = ON|" /etc/mysql/conf.d/cluster.cnf
 
         WSREP_SST_USER=${WSREP_SST_USER:-"sst"}
@@ -59,8 +61,6 @@ EOSQL
             echo >&2 '  Did you forget to add -e WSREP_SST_PASSWORD=xxx ?'
             exit 1
         fi
-
-        cp /tmp/cluster.cnf /etc/mysql/conf.d/cluster.cnf
 
         sed -i -e "s|wsrep_sst_auth \= \"sstuser:changethis\"|wsrep_sst_auth = ${WSREP_SST_USER}:${WSREP_SST_PASSWORD}|" /etc/mysql/conf.d/cluster.cnf
 
