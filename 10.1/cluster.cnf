@@ -2,8 +2,8 @@
 
 # Galera Settings
 
-wsrep_on=ON
-srep_cluster_name = galera
+#wsrep_on=ON
+wsrep_cluster_name = galera
 #wsrep_node_address = 127.0.0.1 
 #wsrep_node_name = galera_node
 wsrep_provider = /usr/lib/libgalera_smm.so

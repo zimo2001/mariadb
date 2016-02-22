@@ -51,7 +51,8 @@ EOSQL
 
 
     if [ -n "$GALERA_CLUSTER" -a "$GALERA_CLUSTER" = true ]; then
-        
+	sed -i -e "s|^#wsrep_on.*$|wsrep_on = ON|" /etc/mysql/conf.d/cluster.cnf
+
         WSREP_SST_USER=${WSREP_SST_USER:-"sst"}
         if [ -z "$WSREP_SST_PASSWORD" ]; then
             echo >&2 'error: database is uninitialized and WSREP_SST_PASSWORD not set'
