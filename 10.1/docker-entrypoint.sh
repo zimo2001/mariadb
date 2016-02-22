@@ -90,8 +90,8 @@ EOSQL
                WSREP_CLUSTER_ADDRESS='gcomm://'
             else
                # wait for all the expected nodes to be registered in etcd	    
-               if [ -n $NODES_EXPECTED ]; then
-                  while [ "$NODES_EXPECTED" -ne "$(./etcdctl --peers=${FLEETCTL_ENDPOINT} ls /galera | wc -l)" ]; do
+               if [ -n $MIN_NODES ]; then
+                  while [ $MIN_NODES -le $(./etcdctl --peers=${FLEETCTL_ENDPOINT} ls /galera | wc -l) ]; do
                      sleep 45
                   done
                fi
@@ -99,11 +99,8 @@ EOSQL
                for key in $(./etcdctl --peers=${FLEETCTL_ENDPOINT} ls /galera/|| true); do
                    NODE=$(./etcdctl --peers=${FLEETCTL_ENDPOINT} get ${key} || true)
 
-                   #ommiting self
-                   if [ "${NODE}" != "${WSREP_NODE_ADDRESS}" ]; then
-                      if [ "$WSREP_CLUSTER_ADDRESS" != '' ]; then
-                         WSREP_CLUSTER_ADDRESS=$WSREP_CLUSTER_ADDRESS,${NODE}
-                      fi
+                   if [ "$WSREP_CLUSTER_ADDRESS" != '' ]; then
+                      WSREP_CLUSTER_ADDRESS=$WSREP_CLUSTER_ADDRESS,${NODE}
                    else
                        WSREP_CLUSTER_ADDRESS=${NODE}
                    fi
