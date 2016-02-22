@@ -86,8 +86,6 @@ EOSQL
         if [ -n "$FLEETCTL_ENDPOINT" -a -e './etcdctl' -a -z "$WSREP_CLUSTER_ADDRESS" ]; then
             WSREP_CLUSTER_ADDRESS=""
 
-
-
             if [ -n "$BOOTSTRAP_NODE" -a "$(hostname)" == "$BOOTSTRAP_NODE" ]; then
                WSREP_CLUSTER_ADDRESS='gcomm://'
             else
@@ -99,11 +97,15 @@ EOSQL
                fi
 
                for key in $(./etcdctl --peers=${FLEETCTL_ENDPOINT} ls /galera/|| true); do
-                   WSREP_NODE=$(./etcdctl --peers=${FLEETCTL_ENDPOINT} get ${key} || true)
-                   if [ "$WSREP_CLUSTER_ADDRESS" != '' -a "${WSREP_NODE}" != "${WSREP_NODE_ADDRESS}" ]; then
-                       WSREP_CLUSTER_ADDRESS=$WSREP_CLUSTER_ADDRESS,${WSREP_NODE}
+                   NODE=$(./etcdctl --peers=${FLEETCTL_ENDPOINT} get ${key} || true)
+
+                   #ommiting self
+                   if [ "${NODE}" != "${WSREP_NODE_ADDRESS}" ]; then
+                      if [ "$WSREP_CLUSTER_ADDRESS" != '' ]; then
+                         WSREP_CLUSTER_ADDRESS=$WSREP_CLUSTER_ADDRESS,${NODE}
+                      fi
                    else
-                       WSREP_CLUSTER_ADDRESS=${WSREP_NODE}
+                       WSREP_CLUSTER_ADDRESS=${NODE}
                    fi
                done
 
