@@ -86,24 +86,32 @@ EOSQL
         if [ -n "$FLEETCTL_ENDPOINT" -a -e './etcdctl' -a -z "$WSREP_CLUSTER_ADDRESS" ]; then
             WSREP_CLUSTER_ADDRESS=""
 
-	    # wait for all the expected nodes to be registered in etcd	    
-	    if [ -n $NODES_EXPECTED ]; then
-               while [ "$NODES_EXPECTED" -ne "$(./etcdctl --peers=${FLEETCTL_ENDPOINT} ls /galera | wc -l)" ]; do
-                  sleep 45
+
+
+            if [ -n "$BOOTSTRAP_NODE" -a $(hostname) -eq $BOOTSTRAP_NODE ]; then
+               WSREP_CLUSTER_ADDRESS='gcomm://'
+            else
+               # wait for all the expected nodes to be registered in etcd	    
+               if [ -n $NODES_EXPECTED ]; then
+                  while [ "$NODES_EXPECTED" -ne "$(./etcdctl --peers=${FLEETCTL_ENDPOINT} ls /galera | wc -l)" ]; do
+                     sleep 45
+                  done
+               fi
+
+               for key in $(./etcdctl --peers=${FLEETCTL_ENDPOINT} ls /galera/|| true); do
+                   WSREP_NODE=$(./etcdctl --peers=${FLEETCTL_ENDPOINT} get ${key} || true)
+                   if [ "$WSREP_CLUSTER_ADDRESS" != '' -a ${WSREP_NODE} != ${WSREP_NODE_ADDRESS} ]; then
+                       WSREP_CLUSTER_ADDRESS=$WSREP_CLUSTER_ADDRESS,${WSREP_NODE}
+                   else
+                       WSREP_CLUSTER_ADDRESS=${WSREP_NODE}
+                   fi
                done
-            fi
 
-            for key in $(./etcdctl --peers=${FLEETCTL_ENDPOINT} ls /galera/|| true); do
-                WSREP_NODE=$(./etcdctl --peers=${FLEETCTL_ENDPOINT} get ${key} || true)
-                if [ "$WSREP_CLUSTER_ADDRESS" != '' ]; then
-                    WSREP_CLUSTER_ADDRESS=$WSREP_CLUSTER_ADDRESS,${WSREP_NODE}
-                else
-                    WSREP_CLUSTER_ADDRESS=${WSREP_NODE}
-                fi
-            done
-
-            WSREP_CLUSTER_ADDRESS=gcomm://${WSREP_CLUSTER_ADDRESS}
+               WSREP_CLUSTER_ADDRESS=gcomm://${WSREP_CLUSTER_ADDRESS}
+           fi
         fi
+
+
 
         # Kubernetes
         # if kubernetes, take advantage of the metadata, unless of course already set
