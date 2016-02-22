@@ -88,7 +88,7 @@ EOSQL
 
 
 
-            if [ -n "$BOOTSTRAP_NODE" -a $(hostname) -eq $BOOTSTRAP_NODE ]; then
+            if [ -n "$BOOTSTRAP_NODE" -a $(hostname) -eq "$BOOTSTRAP_NODE" ]; then
                WSREP_CLUSTER_ADDRESS='gcomm://'
             else
                # wait for all the expected nodes to be registered in etcd	    
@@ -100,7 +100,7 @@ EOSQL
 
                for key in $(./etcdctl --peers=${FLEETCTL_ENDPOINT} ls /galera/|| true); do
                    WSREP_NODE=$(./etcdctl --peers=${FLEETCTL_ENDPOINT} get ${key} || true)
-                   if [ "$WSREP_CLUSTER_ADDRESS" != '' -a ${WSREP_NODE} != ${WSREP_NODE_ADDRESS} ]; then
+                   if [ "$WSREP_CLUSTER_ADDRESS" != '' -a "${WSREP_NODE}" != "${WSREP_NODE_ADDRESS}" ]; then
                        WSREP_CLUSTER_ADDRESS=$WSREP_CLUSTER_ADDRESS,${WSREP_NODE}
                    else
                        WSREP_CLUSTER_ADDRESS=${WSREP_NODE}
