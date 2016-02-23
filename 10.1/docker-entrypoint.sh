@@ -85,7 +85,7 @@ EOSQL
         if [ -n "$FLEETCTL_ENDPOINT" -a -e './etcdctl' -a -z "$WSREP_CLUSTER_ADDRESS" ]; then
             WSREP_CLUSTER_ADDRESS=""
 
-            if [ -e '/var/lib/mysql/BOOTSTRAP_ME' ]; then
+            if [ -e '${DATADIR}/BOOTSTRAP_ME' ]; then
                WSREP_CLUSTER_ADDRESS='gcomm://'
             else
                # wait for all the expected nodes to be registered in etcd	    
