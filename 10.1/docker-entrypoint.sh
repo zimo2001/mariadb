@@ -28,11 +28,10 @@ if [ "$1" = 'mysqld' ]; then
         # TODO proper SQL escaping on ALL the things D:
 
         cat > "$tempSqlFile" <<-EOSQL
-DELETE FROM mysql.user ;
-CREATE USER 'root'@'%' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}' ;
-GRANT ALL ON *.* TO 'root'@'%' WITH GRANT OPTION ;
+DELETE FROM mysql.user;
+GRANT ALL ON *.* TO 'root'@'%' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}' WITH GRANT OPTION;
 GRANT PROCESS ON *.* TO 'clustercheckuser'@'localhost' IDENTIFIED BY 'clustercheckpassword!';
-DROP DATABASE IF EXISTS test ;
+DROP DATABASE IF EXISTS test;
 EOSQL
 
         if [ "$MYSQL_DATABASE" ]; then
@@ -86,7 +85,7 @@ EOSQL
         if [ -n "$FLEETCTL_ENDPOINT" -a -e './etcdctl' -a -z "$WSREP_CLUSTER_ADDRESS" ]; then
             WSREP_CLUSTER_ADDRESS=""
 
-            if [ -n "$BOOTSTRAP_NODE" -a "$(hostname)" == "$BOOTSTRAP_NODE" ]; then
+            if [ -e '/var/lib/mysql/BOOTSTRAP_ME' ]; then
                WSREP_CLUSTER_ADDRESS='gcomm://'
             else
                # wait for all the expected nodes to be registered in etcd	    
