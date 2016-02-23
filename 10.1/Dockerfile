@@ -21,11 +21,11 @@ RUN echo "deb http://ftp.osuosl.org/pub/mariadb/repo/$MARIADB_MAJOR/debian jessi
 # add repository pinning to make sure dependencies from this MariaDB repo are preferred over Debian dependencies
 #  libmariadbclient18 : Depends: libmysqlclient18 (= 5.5.42+maria-1~wheezy) but 5.5.43-0+deb7u1 is to be installed
 
-# install percona-repo & socat
+# install percona-repo & sst_xtrabackup_v2 deps
 COPY percona-release_0.1-3.jessie_all.deb /tmp/percona-release_0.1-3.jessie_all.deb
 RUN dpkg -i /tmp/percona-release_0.1-3.jessie_all.deb \
 	&& apt-get update \
-	&& apt-get install -y percona-toolkit percona-xtrabackup socat
+	&& apt-get install -y percona-toolkit percona-xtrabackup socat pv qpress
 
 
 # the "/var/lib/mysql" stuff here is because the mysql-server postinst doesn't have an explicit way to disable the mysql_install_db codepath besides having a database already "configured" (ie, stuff in /var/lib/mysql/mysql)
