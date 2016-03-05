@@ -3,8 +3,9 @@ set -e
 
 tempSqlFile='/tmp/mysql-first-time.sql'
 
-# read DATADIR from the MySQL config
-DATADIR="$(mysqld --verbose --help 2>/dev/null | awk '$1 == "datadir" { print $2; exit }')"
+# read DATADIR from the MySQL config - REMARKED.    DATADIR is '/data/mysql'
+#DATADIR="$(mysqld --verbose --help 2>/dev/null | awk '$1 == "datadir" { print $2; exit }')"
+DATADIR=/data/mysql
 
 if [ ! -d "$DATADIR/mysql" ]; then
     if [ -z "$MYSQL_ROOT_PASSWORD" -a -z "$MYSQL_ALLOW_EMPTY_PASSWORD" ]; then
@@ -45,9 +46,12 @@ fi
 
 
 if [ -n "$GALERA_CLUSTER" -a "$GALERA_CLUSTER" = true ]; then
-    cp /tmp/cluster.cnf /etc/mysql/conf.d/cluster.cnf
+    if [ ! -e "$DATADIR/../my.cnf" ]
+    then
+	cp /tmp/my.cnf $DATADIR/../my.cnf
+    fi
 
-    sed -i -e "s|^#wsrep_on.*$|wsrep_on = ON|" /etc/mysql/conf.d/cluster.cnf
+    sed -i -e "s|^#wsrep_on.*$|wsrep_on = ON|" $DATADIR/../my.cnf
 
     WSREP_SST_USER=${WSREP_SST_USER:-"sst"}
     if [ -z "$WSREP_SST_PASSWORD" ]; then
@@ -56,21 +60,21 @@ if [ -n "$GALERA_CLUSTER" -a "$GALERA_CLUSTER" = true ]; then
         exit 1
     fi
 
-    sed -i -e "s|wsrep_sst_auth \= \"sstuser:changethis\"|wsrep_sst_auth = ${WSREP_SST_USER}:${WSREP_SST_PASSWORD}|" /etc/mysql/conf.d/cluster.cnf
+    sed -i -e "s|wsrep_sst_auth[\s]*\=[\s]*\"sstuser:changethis\"|wsrep_sst_auth=${WSREP_SST_USER}:${WSREP_SST_PASSWORD}|" $DATADIR/../my.cnf
 
     if [ -n "$CLUSTER_NAME" ]; then
-       sed -i -e "s|^wsrep_cluster_name \= .*$|wsrep_cluster_name = ${CLUSTER_NAME}|" /etc/mysql/conf.d/cluster.cnf
+       sed -i -e "s|^wsrep_cluster_name[\s]*\=[\s]*.*$|wsrep_cluster_name=${CLUSTER_NAME}|" $DATADIR/../my.cnf
     fi
 
     if [ -n "$NODE_NAME" ]; then
-       sed -i -e "s|^#wsrep_node_name \= .*$|wsrep_node_name = ${NODE_NAME}|" /etc/mysql/conf.d/cluster.cnf
+       sed -i -e "s|^#wsrep_node_name[\s]*\=[\s]*.*$|wsrep_node_name=${NODE_NAME}|" $DATADIR/../my.cnf
     else
-       sed -i -e "s|^#wsrep_node_name \= .*$|wsrep_node_name = $(hostname)|" /etc/mysql/conf.d/cluster.cnf
+       sed -i -e "s|^#wsrep_node_name[\s]*\=[\s]*.*$|wsrep_node_name=$(hostname)|" $DATADIR/../my.cnf
     fi
 	
     WSREP_NODE_ADDRESS=`ip addr show | grep -E '^[ ]*inet' | grep -m1 global | awk '{ print $2 }' | sed -e 's/\/.*//'`
     if [ -n "$WSREP_NODE_ADDRESS" ]; then
-        sed -i -e "s|^#wsrep_node_address \= .*$|wsrep_node_address = ${WSREP_NODE_ADDRESS}|" /etc/mysql/conf.d/cluster.cnf
+        sed -i -e "s|^#wsrep_node_address[\s]*\=[\s]*.*$|wsrep_node_address=${WSREP_NODE_ADDRESS}|" $DATADIR/../my.cnf
         if [ -n "$WSREP_CLUSTER_ADDRESS"  -a "$WSREP_CLUSTER_ADDRESS" != "gcomm://" ]; then
             WSREP_CLUSTER_ADDRESS="${WSREP_CLUSTER_ADDRESS},${WSREP_NODE_ADDRESS}"
         fi
@@ -80,6 +84,8 @@ if [ -n "$GALERA_CLUSTER" -a "$GALERA_CLUSTER" = true ]; then
     if [ -n "$FLEETCTL_ENDPOINT" -a -e './etcdctl' -a -z "$WSREP_CLUSTER_ADDRESS" ]; then
         WSREP_CLUSTER_ADDRESS=""
 
+
+        # if there is a file named "BOOTSTRAP_ME" in $DATADIR, bootstrap the cluster from this node
         if [ -e "${DATADIR}/BOOTSTRAP_ME" ]; then
            WSREP_CLUSTER_ADDRESS='gcomm://'
         else
@@ -122,7 +128,7 @@ if [ -n "$GALERA_CLUSTER" -a "$GALERA_CLUSTER" = true ]; then
     fi
 
     if [ -n "$WSREP_CLUSTER_ADDRESS" -a "$WSREP_CLUSTER_ADDRESS" != "gcomm://" ]; then
-        sed -i -e "s|wsrep_cluster_address \= gcomm://|wsrep_cluster_address = ${WSREP_CLUSTER_ADDRESS}|" /etc/mysql/conf.d/cluster.cnf
+        sed -i -e "s|^[#]*wsrep_cluster_address[\s]*\=[\s]*[\"]*.*[\"]*|wsrep_cluster_address=${WSREP_CLUSTER_ADDRESS}|" $DATADIR/../my.cnf
     fi
 
     echo "GRANT RELOAD, LOCK TABLES, REPLICATION CLIENT ON *.* TO '${WSREP_SST_USER}'@'localhost' IDENTIFIED BY '${WSREP_SST_PASSWORD}';" >> "$tempSqlFile"
@@ -131,6 +137,8 @@ fi
 echo 'FLUSH PRIVILEGES ;' >> "$tempSqlFile"
 chown -R mysql:mysql "$DATADIR"
 
+#symlink the my.cnf file
+ln -s $DATADIR/../my.cnf /etc/mysql/my.cnf
 
 
 exec /usr/sbin/mysqld --init-file=${tempSqlFile}

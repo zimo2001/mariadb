@@ -10,7 +10,7 @@ RUN apt-get update && apt-get upgrade -y -o Dpkg::Options::="--force-confold" &&
 # MariaDB key for apt
 RUN apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
 
-# adding the MariaDB source to apt
+# adding the MariaDB sources to apt
 RUN add-apt-repository 'deb [arch=amd64,i386] http://mirror.netcologne.de/mariadb/repo/10.1/ubuntu trusty main'
 
 # add repository pinning to make sure dependencies from this MariaDB repo are preferred over Debian dependencies
@@ -42,8 +42,8 @@ RUN { \
 	&& apt-get update \
 	&& apt-get install -y mariadb-server=$MARIADB_VERSION \
 	&& rm -rf /var/lib/apt/lists/* \
-	&& rm -rf /var/lib/mysql \
-	&& mkdir /var/lib/mysql
+	&& rm -rf /var/lib/mysql
+#	&& mkdir /var/lib/mysql
 
 # comment out a few problematic configuration values
 # don't reverse lookup hostnames, they are usually another container
@@ -51,7 +51,10 @@ RUN { \
 #	&& echo 'skip-host-cache\nskip-name-resolve' | awk '{ print } $1 == "[mysqld]" && c == 0 { c = 1; system("cat") }' /etc/mysql/my.cnf > /tmp/my.cnf \
 #	&& mv /tmp/my.cnf /etc/mysql/my.cnf
 
-VOLUME /var/lib/mysql
+
+# datadir will be '/data/mysql' and MySQL Temp dir will be '/data/tmp'
+RUN mkdir -p /data/{mysql,tmp}
+VOLUME /data
 
 
 COPY kubectl /kubectl
@@ -59,9 +62,10 @@ COPY etcdctl /etcdctl
 RUN chmod +x /kubectl
 RUN chmod +x /etcdctl
 
-# my.cnf files
-COPY my.cnf /etc/mysql/my.cnf
-COPY cluster.cnf /tmp/cluster.cnf
+# my.cnf file
+COPY my.cnf /tmp/my.cnf
+RUN rm /etc/mysql/my.cnf
+
 
 
 # copy clustercheck and setup xinetd
@@ -69,7 +73,6 @@ COPY clustercheck /usr/bin/clustercheck
 RUN chmod +x /usr/bin/clustercheck
 COPY mysqlchk /etc/xinetd.d/mysqlchk
 RUN chmod +x /etc/xinetd.d/mysqlchk
-
 RUN echo "mysqlchk    9200/tcp    # MySQL check" >> /etc/services
 
 
